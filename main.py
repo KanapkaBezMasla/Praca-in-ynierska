@@ -9,8 +9,9 @@ import cv2
 
 
 class MyApp(QWidget):
-    def __init__(self):
+    def __init__(self, mmPerPix: int):
         super().__init__()
+        self.mmPerPix = mmPerPix
         screen = QDesktopWidget().screenGeometry()
         #app1 = QtWidgets.QApplication(sys.argv)
         #size = app1.primaryScreen().size()
@@ -72,24 +73,22 @@ class MyApp(QWidget):
             #cropped.show()
             imProc = ImageProcessing()
             imProc.binarizationMIN()
-            imProc.binarization('markedArea.png', 'binarizated.png', 200)
-            imProc.measurement()
-            # część do nie wymazywania prostokątów
-    #        rect = QRect(self.begin, self.destination)
-    #        painter = QPainter(self.pix)
-    #        painter.drawRect(rect.normalized())
+            imProc.binarization('markedArea.png', 'binarizated.png', 170)
+            imProc.measurement(self.mmPerPix)
 
-    #        self.begin, self.destination = QPoint(), QPoint()
-    #        self.update()
-##################################################################################################
+
+class WarningWindow:
+    def __init__(self, text: str):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText("Ostrzeżenie!")
+        msg.setInformativeText(text)
+        x = msg.exec_()
 
 
 class ImageProcessing:
     #def __init__(self):
-        #self.emptyRows = []
-        #for y in range(height):
-        #    self.emptyRows.append(False)
-        #self.imgProcessed = Image.new('RGB', [width, height], 0x000000)
+
     @staticmethod
     def binarization(openFile: str, savingFile: str, threshold: int):
         img = cv2.imread(openFile)
@@ -97,25 +96,29 @@ class ImageProcessing:
         cv2.imwrite(savingFile, im_th)
 
     @staticmethod
-    def measurement():
+    def measurement(mmPerPix: int):
         binarizated = Image.open('binarizated.png')
         width, height = binarizated.size
+        yellow = True
+        countingOn = False
+        greenCounting = 0
+        baseThreshold = 15
+        damageLen = 0
+        showedWarning = False
+        showedWarning2 = False
         for y in range(height):
-            yellow = True
-            countingOn = False
-            baseThreshold = 15
-            damageLen = 0
-            showedWarning = False
             #Jeżeli poprzedni wiersz kończył się w pasku, a nie w "szarej strefie"
-            if countingOn == True:
+            if countingOn:
                 if yellow == True:
-                    print('| z ' + str(damageLen) + ' |')
+                    print('| z ' + str((damageLen+greenCounting)*mmPerPix) + 'mm |')
                 else:
-                    print('| n ' + str(damageLen) + ' |')
+                    print('| n ' + str((damageLen+greenCounting)*mmPerPix) + 'mm |')
                 damageLen = 0
                 countingOn = False
+                greenCounting = 0
+                redCounting = 0
                 if showedWarning == False:
-                    print('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
+                    WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
                     showedWarning = True
                 #Dodać ostrzeżenie
             print(str(y) + '  ')
@@ -124,12 +127,22 @@ class ImageProcessing:
                 if p[1] == 255:
                     #Jeśli kolor żółty
                     if p[0] == 255 and p[2] == 0:
+                        if x == 0 and showedWarning == False:
+                            WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
+                            showedWarning = True
+                        #Przed żółtym jest czerwony
+                        if redCounting > 0:
+                            if yellow:
+                                damageLen += redCounting + 1
+                            else:
+                                yellow = True
+                            redCounting = 0
                         #Przed żółtym jest też piksel żółty
-                        if countingOn == True and yellow == True:
+                        elif countingOn == True and yellow == True and greenCounting == 0:
                             damageLen += 1
                         #Przed żółtym jest niebieski
-                        elif countingOn == True and yellow == False:
-                            print('| n '+str(damageLen)+' |')
+                        elif countingOn == True and yellow == False and greenCounting == 0:
+                            print('| n '+str(damageLen*mmPerPix)+'mm |')
                             damageLen = 1
                             yellow = True
                         #Przed żółtym jest szary
@@ -137,14 +150,29 @@ class ImageProcessing:
                             countingOn = True
                             damageLen=1
                             yellow = True
+                        #Przed żółtym jest zielony
+                        else:
+                            print('| n '+str(damageLen*mmPerPix)+'mm |')
+                            damageLen = greenCounting + 1
+                            greenCounting = 0
+                            yellow = True
                     #Jeśli kolor niebieski
                     elif p[0] == 0 and p[2] == 255:
+                        if x == 0 and showedWarning == False:
+                            WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
+                            showedWarning = True
+                        if redCounting > 0:
+                            if yellow == False:
+                                damageLen += redCounting + 1
+                            else:
+                                yellow = False
+                            redCounting = 0
                         #Przed niebieskim jest też piksel niebieski
-                        if countingOn == True and yellow == False:
+                        elif countingOn == True and yellow == False and greenCounting == 0:
                             damageLen += 1
                         #Przed niebieskim jest żółty
-                        elif countingOn == True and yellow == True:
-                            print('| z '+str(damageLen)+' |')
+                        elif countingOn == True and yellow == True and greenCounting == 0:
+                            print('| z '+str(damageLen*mmPerPix)+'mm |')
                             damageLen = 1
                             yellow = False
                         #Przed niebieskim jest szary
@@ -152,27 +180,40 @@ class ImageProcessing:
                             countingOn = True
                             damageLen=1
                             yellow = False
+                        # Przed niebieskim jest zielony
+                        else:
+                            yellow = False
+                            print('| z ' + str(damageLen*mmPerPix) + 'mm |')
+                            damageLen = greenCounting + 1
+                            greenCounting = 0
                     #kolor zielony
-                    #else:
+                    elif countingOn:
+                        greenCounting += 1
 
                 #kolor szary (lub jakiś błąd koloru czerwonego/niebieskiego)
                 else:
                     #kolor czerwony
-                    if p[0] == 255 and showedWarning == False:
-                        #DODAĆ POWIADOMIENIE O BŁĘDZIE!!!!!!!!!!!!!!!!!!!!
-                        print('Usun czerwony wskaznik z zaznaczonego pola! Możliwe błędne zapisanie danych!')
-                        showedWarning = True
+                    if p[0] == 255:
+                        if showedWarning2 == False:
+                            WarningWindow('Usun czerwony wskaznik z zaznaczonego pola! Możliwe błędne zapisanie danych!')
+                            showedWarning2 = True
+                        if countingOn:
+                            redCounting += 1
+                    else:
+                        redCounting = 0
                     #zakończenie paska...
-                    if countingOn == True:
+                    if countingOn:
                         countingOn = False
                         #...żółtego
                         if yellow == True:
-                            print('| z ' + str(damageLen) + ' |')
+                            print('| z ' + str((damageLen+greenCounting)*mmPerPix) + 'mm |')
                             damageLen = 0
+                            greenCounting = 0
                         #...niebieskiego
                         else:
-                            print('| n ' + str(damageLen) + ' |')
+                            print('| n ' + str((damageLen+greenCounting)*mmPerPix) + 'mm |')
                             damageLen = 0
+                            greenCounting = 0
 
     @staticmethod
     def binarizationMIN():
@@ -190,47 +231,7 @@ class ImageProcessing:
                     min_val = 255
                 black_white.putpixel((x, y), min_val)
         black_white.save('chanels.png')
-
-
-
-
-
     #def canalCounting(self):
-
-
-    #def binarization(self):
-        #redTh = 150
-        #blueTh = 150
-        #width, height = self.img.size
-        #print('tu jeszcze dziala')
-        #for y in range(height):
-        #    self.emptyRows[y] = True
-        #    for x in range(width):
-        #        p = self.img.getpixel((x, y))
-        #        print(p)
-        #        np = []
-        #        np.append(int(0))
-        #        np.append(int(0))
-        #        print('gggg')
-        #        if p[0] > redTh:
-        #            print('jjjjj')
-        #            np[0] = 255
-        #            print('oooooo')
-        #            np.append(int(0))
-        #            self.emptyRows[y] = False
-        #        elif p[2] > blueTh:
-        #            np[0] = 0
-        #            np.append(255)
-        #            self.emptyRows[y] = False
-        #        else:
-        #            np[0] = 0
-        #            np.append(int(0))
-        #        print(np)
-        #        npTuple = (int(np[0]), int(np[1]), int(np[2]))
-        #        print(npTuple)
-        #        self.imgProcessed.putpixel((x, y), npTuple)
-        #print('sidjasid')
-        #self.img.save("binarizated.png")
 
 
 if __name__ == '__main__':
@@ -240,8 +241,8 @@ if __name__ == '__main__':
             font-size: 30px;
         }
     ''')
-
-    myApp = MyApp()
+    mmPerPix = 2
+    myApp = MyApp(mmPerPix)
     myApp.show()
 
     try:

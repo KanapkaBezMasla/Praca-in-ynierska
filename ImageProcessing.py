@@ -2,10 +2,20 @@ from PIL import Image
 import cv2
 from openpyxl import Workbook, load_workbook
 import os
-import WarningWindow
+from WarningWindow import WarningWindow
+import math
 
 class ImageProcessing:
-    # def __init__(self):
+    # l_cor_x = None
+    # l_cor_y = None
+    # r_cor_x = None
+    # r_cor_y = None
+
+    # def __init__(self, x1: int, y1: int, x2: int, y2: int):
+    #    self.l_cor_x = x1
+    #    self.l_cor_y = y1
+    #    self.r_cor_x = x2
+    #    self.r_cor_y = y2
 
     @staticmethod
     def binarization(openFile: str, savingFile: str, threshold: int):
@@ -14,7 +24,7 @@ class ImageProcessing:
         cv2.imwrite(savingFile, im_th)
 
     @staticmethod
-    def measurement(mmPerPix: int):
+    def measurement(mmPerPix: int): #, xBeg: int, yBeg: int, xDest: int, yDest: int):
         if os.path.isfile('pomiaryUszkodzen.xlsx') and os.access('pomiaryUszkodzen.xlsx', os.W_OK):
             wb = load_workbook('pomiaryUszkodzen.xlsx')
         else:
@@ -28,6 +38,7 @@ class ImageProcessing:
         greenCounting = 0
         baseThreshold = 15
         damageLen = 0
+        redCounting = 0
         showedWarning = False
         showedWarning2 = False
         sheetRow = []
@@ -43,7 +54,7 @@ class ImageProcessing:
                 countingOn = False
                 greenCounting = 0
                 redCounting = 0
-                if showedWarning == False:
+                if not showedWarning:
                     WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
                     showedWarning = True
             if list != []:
@@ -55,7 +66,7 @@ class ImageProcessing:
                 if p[1] == 255:
                     # Jeśli kolor żółty
                     if p[0] == 255 and p[2] == 0:
-                        if x == 0 and showedWarning == False:
+                        if x == 0 and not showedWarning:
                             WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
                             showedWarning = True
                         # Przed żółtym jest czerwony
@@ -88,7 +99,7 @@ class ImageProcessing:
                             yellow = True
                     # Jeśli kolor niebieski
                     elif p[0] == 0 and p[2] == 255:
-                        if x == 0 and showedWarning == False:
+                        if x == 0 and not showedWarning:
                             WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
                             showedWarning = True
                         if redCounting > 0:
@@ -126,12 +137,7 @@ class ImageProcessing:
                 else:
                     # kolor czerwony
                     if p[0] == 255:
-                        # dodane po pokazie u promo, bo czerwony przerywał paski z czarną ramką
-                        #WarningWindow(
-                        #    'Usun czerwony wskaznik z zaznaczonego pola! Możliwe błędne zapisanie danych!')
-                        #showedWarning2 = True
-                        #dodane po pokazie u promo, bo czerwony przerywał paski z czarną ramką
-                        if showedWarning2 == False:
+                        if not showedWarning2:
                             WarningWindow(
                                 'Usun czerwony wskaznik z zaznaczonego pola! Możliwe błędne zapisanie danych!')
                             showedWarning2 = True
@@ -172,4 +178,21 @@ class ImageProcessing:
                     min_val = 255
                 black_white.putpixel((x, y), min_val)
         black_white.save('chanels.png')
-    # def canalCounting(self):
+
+    #Funkcja wyliczająca rząd pierwszego kanału na obrazku.
+    #Jeśli pierwszy rząd będzie poza obrazkiem, to zwróci -1
+    @staticmethod
+    def firstChan(yBeg: int, yDest: int, compYPix: int, chanY: int):
+        chanN = math.ceil((154 - 3*compYPix - yBeg)/(-2*(chanY-1)))
+        if chanN < yDest:
+            chanN -= yBeg #Być może trzeba odjąć 1, jeśli piksele w obrazkach nie są indeksowane od 0
+            return chanN
+        else:
+            return -1
+
+    # Funkcja wyliczająca rząd ostatniego kanału na obrazku.
+    @staticmethod
+    def lastChan(yBeg: int, yDest: int, compYPix: int, chanY: int):
+        chanN = math.floor((154 - 3 * compYPix - yDest) / (-2 * (chanY - 1)))
+        chanN -= yBeg #Być może trzeba odjąć 1, jeśli pikselse w obrazkach nie są indeksowane od 0
+        return chanN

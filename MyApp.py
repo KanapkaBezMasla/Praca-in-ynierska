@@ -15,9 +15,9 @@ class MyApp(QWidget):
         screen = QDesktopWidget().screenGeometry()
         # app1 = QtWidgets.QApplication(sys.argv)
         # size = app1.primaryScreen().size()
-        self.window_width, self.window_height = screen.width(), screen.height() - 76
-        self.setMinimumSize(self.window_width, self.window_height - 35)
-        self.setGeometry(0, 76, self.window_width, self.window_height - 35)
+        self.window_width, self.window_height = screen.width(), screen.height() - 106
+        self.setMinimumSize(self.window_width, self.window_height)
+        self.setGeometry(0, 76, self.window_width, self.window_height)
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.pix = QPixmap(self.rect().size())
@@ -33,6 +33,10 @@ class MyApp(QWidget):
         # Pixels betweet chanells
         self.chanY = -1
         self.compYPix = -1
+        self.markedChannel = -1
+        self.pixOfMChan = -1
+        self.x_scale_pos = -1
+        self.x_scale_val = -1
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -52,23 +56,25 @@ class MyApp(QWidget):
             self.xdest = event.globalX()
             self.destination = self.begin
             self.update()
-            print(str(self.xBeg) + "; " + str(self.yBeg))
+            #print(str(self.xBeg) + "; " + str(self.yBeg))
         elif event.buttons() & Qt.RightButton:
             exit(0)
 
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.LeftButton:
-            if 76 < event.globalY() < self.window_height + 39:
+            if 76 < event.globalY() < self.window_height + 70:
                 self.destination = event.pos()
                 self.update()
                 self.ydest = event.globalY()
                 self.xdest = event.globalX()
-            #else:
-            #    self.xdest = event.globalX()
-            #    if 76 > event.globalY():
-            #        self.ydest = 77
-            #    else:
-            #        self.ydest = self.window_height + 38
+            else:
+                if 76 > event.globalY():
+                    self.destination.setY(1)
+                else:
+                    self.destination.setY(self.window_height-13)
+                self.destination.setX(event.globalX())
+                self.update()
+                self.xdest = event.globalX()
     # Przy puszczeniu myszki robiony jest zrzut ekranu, który jest przycinany do zaznaczonych wymiarów i zapisywany
     def mouseReleaseEvent(self, event):
         if event.button() & Qt.LeftButton:
@@ -94,4 +100,4 @@ class MyApp(QWidget):
             imProc = ImageProcessing()
             imProc.binarizationMIN()
             imProc.binarization('markedArea.png', 'binarizated.png', 200)
-            imProc.measurement(self.mmPerPix)
+            imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.xdest, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)

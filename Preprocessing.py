@@ -1,4 +1,6 @@
 import math
+import sys
+
 import PIL
 import cv2
 import pytesseract as tess
@@ -34,7 +36,7 @@ class Preprocessing:
     def findBeltX():
         im = PIL.ImageGrab.grab()
         width, height = im.size
-        xpos = im.crop((46, 140, width-50, height-53))
+        xpos = im.crop((46, 430, width-50, height-53))
         xpos = xpos.convert('L')
         xpos.save("beltX.png")
         imProc = ImageProcessing()
@@ -44,13 +46,20 @@ class Preprocessing:
         cong = r'--oem 3 --psm 6 outputbase digits'
         boxes = tess.image_to_data(img, config=cong)
         x_val, global_x = 0, 0
+        # Zabezpieczenie przed otwartym oknem w prawej części ekranu poprzez znaleznie liczby najbliżej prawej strony ekranu
+        minX = sys.maxsize
+        for x,b in enumerate(boxes.splitlines()):
+            if x != 0:
+                b = b.split()
+                if len(b) == 12 and int(b[6]) < minX and b[11]!= "1" and b[11]!= "." and b[11] != ",":
+                    minX = int(b[6])
         for x,b in enumerate(boxes.splitlines()):
             if x != 0:
                 b = b.split()
                 #print(b)
                 if len(b) == 12:
                     print(b[11])
-                    if(b[11]!= "1" and b[11]!= "." and b[11] != ","):
+                    if(b[11]!= "1" and b[11]!= "." and b[11] != "," and int(b[6]) == minX):
                         x, y, w, h = int(b[6]), int(b[7]), int(b[8]), int(b[9])
                         global_x = x + math.floor(w / 2) + 46
                         x_val = float(b[11])
@@ -76,18 +85,26 @@ class Preprocessing:
         boxes = tess.image_to_data(img, config=cong)
         markedChannel = -1
         pixOfChan = -1
+        chanY = -1
+        wait4PixChan2 = False
         for x,b in enumerate(boxes.splitlines()):
             if x != 0:
                 b = b.split()
                 if len(b) == 12:
                     x, y, w, h, text = int(b[6]), int(b[7]), int(b[8]), int(b[9]), b[11]
                     if text[len(text)-1] == '-':
-                        text = text[0:len(text)-1]
-                        markedChannel = int(text)
-                        pixOfChan = y + math.ceil(h/2) + 140
-                        #print(markedChannel)
-                        #print(pixOfChan)
-                        break
+                        if not wait4PixChan2:
+                            text = text[0:len(text)-1]
+                            markedChannel = int(text)
+                            pixOfChan = y + math.ceil(h/2) + 140
+                        #wersja dla drugiego wejści do if'a, tym razem wyliczamy szrokosc kanalu
+                        else:
+                            text = text[0:len(text) - 1]
+                            markedChannel2 = int(text)
+                            pixOfChan2 = y + math.ceil(h / 2) + 140
+                            chanY = math.floor((pixOfChan2-pixOfChan)/(markedChannel2-markedChannel))
+                            break
+                        wait4PixChan2 = True
                     elif len(text) == 3:
                         markedChannel = int(text)
                         pixOfChan = y + math.ceil(h / 2) + 140
@@ -97,4 +114,4 @@ class Preprocessing:
                     #cv2.rectangle(img, (x, y), (w+x, h+y), 100, 1)
                     #cv2.putText(img,b[11],(x,y),cv2.FONT_HERSHEY_COMPLEX,1,110, 2)
         #cv2.imshow('res', img)
-        return markedChannel, pixOfChan
+        return markedChannel, pixOfChan, chanY

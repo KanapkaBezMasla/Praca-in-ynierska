@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QDesktopWidget
 import PIL.ImageGrab
 from ImageProcessing import ImageProcessing
 from Preprocessing import Preprocessing
-from InsertionWindow import InsertionWindow
 
 
 class MyApp(QWidget):
@@ -113,11 +112,11 @@ class MyApp(QWidget):
             # cropped.show()
 
             self.mmPerPix = self.preProc.readNumber(43, 96, 120, 120, self, 'x')
-            # Pixels betweet chanells
-            self.chanY = self.preProc.readNumber(220, 96, 262, 120, self, 'chanY')
             self.compYPix = self.preProc.readNumber(355, 96, 397, 120, self, 'compY Pixels')
             self.x_scale_val, self.x_scale_pos = self.preProc.findBeltX()
-            self.markedChannel, self.pixOfMChan = self.preProc.findBeltChan()
+            self.markedChannel, self.pixOfMChan, self.chanY = self.preProc.findBeltChan()
+            # Pixels betweet chanells
+            #self.chanY = self.preProc.readNumber(220, 96, 262, 120, self, 'chanY')
 
             self.imProc.binarization('markedArea.png', 'binarizated.png', 200)
-            self.imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.xdest, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)
+            self.imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)

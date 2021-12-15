@@ -18,11 +18,11 @@ class ImageProcessing:
         #ymax = min(ymax, yDest)
         if pixOfMark < yBeg:
             while pixOfMark < ymin:
-                pixOfMark += chanY*2-1
+                pixOfMark += chanY #chanY*2-1
                 chanN += 1
         else:
-            while pixOfMark - chanY*2-1 > ymin:
-                pixOfMark -= chanY * 2 - 1
+            while pixOfMark -chanY > ymin: # - chanY*2-1 > ymin:
+                pixOfMark -= chanY #* 2 - 1
                 chanN -= 1
         if pixOfMark<yBeg or pixOfMark>yDest:
             return -1, -1
@@ -215,7 +215,7 @@ class ImageProcessing:
                             sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = 0
                             greenCounting = 0
-            pixLine += chanY*2-1
+            pixLine += chanY #chanY*2-1
             chanN += 1
         try:
             wb.save('pomiaryUszkodzen.xlsx')

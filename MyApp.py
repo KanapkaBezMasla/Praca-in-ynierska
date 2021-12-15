@@ -1,21 +1,18 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPoint, QRect
-from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtGui import QPixmap, QPainter, QBrush
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QDesktopWidget
-import sys
 import PIL.ImageGrab
 from ImageProcessing import ImageProcessing
-import Preprocessing
+from Preprocessing import Preprocessing
 from InsertionWindow import InsertionWindow
 
 
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
-        screen = QDesktopWidget().screenGeometry()
-        # app1 = QtWidgets.QApplication(sys.argv)
-        # size = app1.primaryScreen().size()
-        self.window_width, self.window_height = screen.width(), screen.height() - 106
+        self.screen = QDesktopWidget().screenGeometry()
+        self.window_width, self.window_height = self.screen.width(), self.screen.height() - 106
         self.setMinimumSize(self.window_width, self.window_height)
         self.setGeometry(0, 76, self.window_width, self.window_height)
         layout = QVBoxLayout()
@@ -24,7 +21,8 @@ class MyApp(QWidget):
         self.pix.fill(Qt.darkGray)
         self.setWindowOpacity(.20)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.imProc = ImageProcessing()
+        self.preProc = Preprocessing()
 
         self.begin, self.destination = QPoint(), QPoint()
         self.xBeg, self.yBeg = 0, 0
@@ -37,31 +35,46 @@ class MyApp(QWidget):
         self.pixOfMChan = -1
         self.x_scale_pos = -1
         self.x_scale_val = -1
+        self.noAction = False
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setPen(Qt.red)
         painter.drawPixmap(QPoint(), self.pix)
-        if not self.begin.isNull() and not self.destination.isNull():
+        if not self.begin.isNull() and not self.destination.isNull() and not self.noAction:
             rect = QRect(self.begin, self.destination)
             #rect = QRect(self.xBeg, self.yBeg, 100, 100)
             painter.drawRect(rect.normalized())
+        painter.setPen(Qt.green)
+        painter.setBrush(QBrush(Qt.green, Qt.SolidPattern))
+        rect = QRect(self.screen.width()-10, 0, self.screen.width(), 10)
+        painter.drawRect(rect.normalized())
+
+    def mouseDoubleClickEvent(self, event):
+        self.begin = None
+        self.destination = None
+        if event.x() > self.screen.width()-11 and event.y() < 11:
+            print("idjfoweijfwejfowefj")
+
 
     def mousePressEvent(self, event):
         if event.buttons() & Qt.LeftButton:
-            self.xBeg = event.globalX()
-            self.yBeg = event.globalY()
-            self.begin = event.pos()
-            self.ydest = event.globalY()
-            self.xdest = event.globalX()
-            self.destination = self.begin
-            self.update()
-            #print(str(self.xBeg) + "; " + str(self.yBeg))
+            if event.x() < self.screen.width() - 11 and event.y() > 11:
+                self.xBeg = event.globalX()
+                self.yBeg = event.globalY()
+                self.begin = event.pos()
+                self.ydest = event.globalY()
+                self.xdest = event.globalX()
+                self.destination = self.begin
+                self.noAction = False
+                self.update()
+            else:
+                self.noAction = True
         elif event.buttons() & Qt.RightButton:
             exit(0)
 
     def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.LeftButton:
+        if event.buttons() & Qt.LeftButton and not self.noAction:
             if 76 < event.globalY() < self.window_height + 70:
                 self.destination = event.pos()
                 self.update()
@@ -76,8 +89,9 @@ class MyApp(QWidget):
                 self.update()
                 self.xdest = event.globalX()
     # Przy puszczeniu myszki robiony jest zrzut ekranu, który jest przycinany do zaznaczonych wymiarów i zapisywany
+
     def mouseReleaseEvent(self, event):
-        if event.button() & Qt.LeftButton:
+        if (event.button() & Qt.LeftButton) and abs(self.xBeg-self.xdest) > 10 and abs(self.yBeg - self.ydest) > 10 and not self.noAction:
             im = PIL.ImageGrab.grab()
             if self.xBeg < event.globalX():
                 if self.yBeg < event.globalY():
@@ -97,7 +111,13 @@ class MyApp(QWidget):
             cropped = im.crop((self.xBeg, self.yBeg, self.xdest, self.ydest))
             cropped.save("markedArea.png")
             # cropped.show()
-            imProc = ImageProcessing()
-            imProc.binarizationMIN()
-            imProc.binarization('markedArea.png', 'binarizated.png', 200)
-            imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.xdest, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)
+
+            self.mmPerPix = self.preProc.readNumber(43, 96, 120, 120, self, 'x')
+            # Pixels betweet chanells
+            self.chanY = self.preProc.readNumber(220, 96, 262, 120, self, 'chanY')
+            self.compYPix = self.preProc.readNumber(355, 96, 397, 120, self, 'compY Pixels')
+            self.x_scale_val, self.x_scale_pos = self.preProc.findBeltX()
+            self.markedChannel, self.pixOfMChan = self.preProc.findBeltChan()
+
+            self.imProc.binarization('markedArea.png', 'binarizated.png', 200)
+            self.imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.xdest, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)

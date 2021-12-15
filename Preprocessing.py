@@ -19,11 +19,15 @@ class Preprocessing:
             number = int(tess.image_to_string(img, config='--psm 7'))
             #print(number)
         except ValueError:
-            number, ok = QInputDialog.getInt(mainWin, 'Błąd zczytywania wartości',
+            number = 0
+            while number < 1:
+                number, ok = QInputDialog.getInt(mainWin, 'Błąd zczytywania wartości',
                                             'Nie udało się zczytać wartości parametru "' +
                                             elementToRead + '".\n Proszę wprowadzić wartość ręcznie:')
-            if ok:
-                return number
+                if ok and number > 0:
+                    return number
+                elif not ok:
+                    quit()
         return number
 
     @staticmethod
@@ -39,6 +43,7 @@ class Preprocessing:
         img = cv2.imread('beltXbin.png')
         cong = r'--oem 3 --psm 6 outputbase digits'
         boxes = tess.image_to_data(img, config=cong)
+        x_val, global_x = 0, 0
         for x,b in enumerate(boxes.splitlines()):
             if x != 0:
                 b = b.split()
@@ -74,7 +79,6 @@ class Preprocessing:
         for x,b in enumerate(boxes.splitlines()):
             if x != 0:
                 b = b.split()
-                #print(b)
                 if len(b) == 12:
                     x, y, w, h, text = int(b[6]), int(b[7]), int(b[8]), int(b[9]), b[11]
                     if text[len(text)-1] == '-':
@@ -94,4 +98,3 @@ class Preprocessing:
                     #cv2.putText(img,b[11],(x,y),cv2.FONT_HERSHEY_COMPLEX,1,110, 2)
         #cv2.imshow('res', img)
         return markedChannel, pixOfChan
-

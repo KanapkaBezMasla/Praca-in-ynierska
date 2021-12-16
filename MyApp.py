@@ -1,7 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPoint, QRect
 from PyQt5.QtGui import QPixmap, QPainter, QBrush
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QDesktopWidget
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QDesktopWidget
 import PIL.ImageGrab
 from ImageProcessing import ImageProcessing
 from Preprocessing import Preprocessing
@@ -42,7 +42,6 @@ class MyApp(QWidget):
         painter.drawPixmap(QPoint(), self.pix)
         if not self.begin.isNull() and not self.destination.isNull() and not self.noAction:
             rect = QRect(self.begin, self.destination)
-            #rect = QRect(self.xBeg, self.yBeg, 100, 100)
             painter.drawRect(rect.normalized())
         painter.setPen(Qt.green)
         painter.setBrush(QBrush(Qt.green, Qt.SolidPattern))
@@ -94,29 +93,22 @@ class MyApp(QWidget):
             im = PIL.ImageGrab.grab()
             if self.xBeg < event.globalX():
                 if self.yBeg < event.globalY():
-                    #cropped = im.crop((self.xBeg * 2 + 1, self.yBeg * 2 + 1, self.xdest * 2, self.ydest * 2))
                     self.xBeg, self.yBeg, self.xdest, self.ydest = self.xBeg * 2 + 1, self.yBeg * 2 + 1, self.xdest * 2, self.ydest * 2
                 else:
-                    #cropped = im.crop((self.xBeg * 2 + 1, event.globalY() * 2 + 1, self.xdest * 2, self.yBeg * 2))
                     self.xBeg, self.yBeg, self.xdest, self.ydest = self.xBeg * 2 + 1, event.globalY() * 2 + 1, self.xdest * 2, self.yBeg * 2
             else:
                 if self.yBeg < event.globalY():
-                    #cropped = im.crop((self.xdest * 2 + 1, self.yBeg * 2 + 1, self.xBeg * 2, self.ydest * 2))
                     self.xBeg, self.yBeg, self.xdest, self.ydest = self.xdest * 2 + 1, self.yBeg * 2 + 1, self.xBeg * 2, self.ydest * 2
                 else:
-                    #cropped = im.crop((self.xdest * 2 + 1, self.ydest * 2 + 1, self.xBeg * 2, self.yBeg * 2))
                     self.xBeg, self.yBeg, self.xdest, self.ydest = self.xdest * 2 + 1, self.ydest * 2 + 1, self.xBeg * 2, self.yBeg * 2
 
             cropped = im.crop((self.xBeg, self.yBeg, self.xdest, self.ydest))
             cropped.save("markedArea.png")
-            # cropped.show()
 
             self.mmPerPix = self.preProc.readNumber(43, 96, 120, 120, self, 'x')
             self.compYPix = self.preProc.readNumber(355, 96, 397, 120, self, 'compY Pixels')
             self.x_scale_val, self.x_scale_pos = self.preProc.findBeltX()
             self.markedChannel, self.pixOfMChan, self.chanY = self.preProc.findBeltChan()
-            # Pixels betweet chanells
-            #self.chanY = self.preProc.readNumber(220, 96, 262, 120, self, 'chanY')
 
             self.imProc.binarization('markedArea.png', 'binarizated.png', 200)
             self.imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)

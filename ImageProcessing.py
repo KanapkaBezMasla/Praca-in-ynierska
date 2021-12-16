@@ -14,15 +14,13 @@ class ImageProcessing:
     def findFirstChanOnImg(chanY: int, chanN: int, pixOfMark: int, yBeg: int, yDest: int, compYPix: int):
         ymin = 155 + (compYPix - 1) * 3
         ymin = max(ymin, yBeg)
-        #ymax = QDesktopWidget().screenGeometry().height()*2 - 106
-        #ymax = min(ymax, yDest)
         if pixOfMark < yBeg:
             while pixOfMark < ymin:
-                pixOfMark += chanY #chanY*2-1
+                pixOfMark += chanY
                 chanN += 1
         else:
-            while pixOfMark -chanY > ymin: # - chanY*2-1 > ymin:
-                pixOfMark -= chanY #* 2 - 1
+            while pixOfMark - chanY > ymin:
+                pixOfMark -= chanY
                 chanN -= 1
         if pixOfMark<yBeg or pixOfMark>yDest:
             return -1, -1
@@ -72,14 +70,11 @@ class ImageProcessing:
             # Jeżeli poprzedni wiersz kończył się w pasku, a nie w "szarej strefie"
             if countingOn:
                 if yellow == True:
-                    #print('| z ' + str((damageLen + greenCounting) * mmPerPix) + 'mm |')
-                    sheetRow.append('pocz: ' + str(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                    sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                     sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                     #ws.append()
                 else:
-                    # print('| n ' + str((damageLen + greenCounting) * mmPerPix) + 'mm |')
-                    sheetRow.append('pocz: ' + str(x_scale_val +
-                        round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                    sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                     sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                 damageLen = 0
                 countingOn = False
@@ -98,7 +93,6 @@ class ImageProcessing:
                 emptyChan = True
             sheetRow.clear()
             firstDamageOnChan = True
-            # print('chanN + pixLine: ' + str(chanN) + '  ' + str(pixLine))
             for x in range(width):
                 p = binarizated.getpixel((x, pixLine))
                 if p[1] == 255:
@@ -122,9 +116,7 @@ class ImageProcessing:
                             damageLen += 1
                         # Przed żółtym jest niebieski
                         elif countingOn == True and yellow == False and greenCounting == 0:
-                            #print('| n ' + str(damageLen * mmPerPix) + 'mm |')
-                            sheetRow.append('pocz: ' + str(x_scale_val +
-                                round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                             sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = 1
                             yellow = True
@@ -135,9 +127,7 @@ class ImageProcessing:
                             yellow = True
                         # Przed żółtym jest zielony
                         else:
-                            #print('| n ' + str(damageLen * mmPerPix) + 'mm |')
-                            sheetRow.append('pocz: ' + str(x_scale_val +
-                                round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                             sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = greenCounting + 1
                             greenCounting = 0
@@ -161,9 +151,7 @@ class ImageProcessing:
                             damageLen += 1
                         # Przed niebieskim jest żółty
                         elif countingOn == True and yellow == True and greenCounting == 0:
-                            #print('| z ' + str(damageLen * mmPerPix) + 'mm |')
-                            sheetRow.append('pocz: ' + str(x_scale_val +
-                                round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                             sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = 1
                             yellow = False
@@ -175,9 +163,7 @@ class ImageProcessing:
                         # Przed niebieskim jest zielony
                         else:
                             yellow = False
-                            #print('| z ' + str(damageLen * mmPerPix) + 'mm |')
-                            sheetRow.append('pocz: ' + str(x_scale_val +
-                                round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                             sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = greenCounting + 1
                             greenCounting = 0
@@ -203,15 +189,13 @@ class ImageProcessing:
                         countingOn = False
                         # ...żółtego
                         if yellow == True:
-                            #print('| z ' + str((damageLen + greenCounting) * mmPerPix) + 'mm |')
-                            sheetRow.append('pocz: ' + str(x_scale_val + round(float(( x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                             sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = 0
                             greenCounting = 0
                         # ...niebieskiego
                         else:
-                            #print('| n ' + str((damageLen + greenCounting) * mmPerPix) + 'mm |')
-                            sheetRow.append('pocz: ' + str(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
                             sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = 0
                             greenCounting = 0
@@ -246,7 +230,7 @@ class ImageProcessing:
     def firstChan(yBeg: int, yDest: int, compYPix: int, chanY: int):
         chanN = math.ceil((154 - 3*compYPix - yBeg)/(-2*(chanY-1)))
         if chanN < yDest:
-            chanN -= yBeg #Być może trzeba odjąć 1, jeśli piksele w obrazkach nie są indeksowane od 0
+            chanN -= yBeg
             return chanN
         else:
             return -1
@@ -255,5 +239,5 @@ class ImageProcessing:
     @staticmethod
     def lastChan(yBeg: int, yDest: int, compYPix: int, chanY: int):
         chanN = math.floor((154 - 3 * compYPix - yDest) / (-2 * (chanY - 1)))
-        chanN -= yBeg #Być może trzeba odjąć 1, jeśli pikselse w obrazkach nie są indeksowane od 0
+        chanN -= yBeg
         return chanN

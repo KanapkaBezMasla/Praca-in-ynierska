@@ -16,10 +16,9 @@ class Preprocessing:
         mmPerPixIm = im.crop((x1, y1, x2, y2))
         mmPerPixIm.save("number.png")
         img = cv2.imread("number.png")
-        #img = cv2.resize(img, (0, 0), fx=3, fy=3)
         try:
             number = int(tess.image_to_string(img, config='--psm 7'))
-            #print(number)
+
         except ValueError:
             number = 0
             while number < 1:
@@ -56,18 +55,12 @@ class Preprocessing:
         for x,b in enumerate(boxes.splitlines()):
             if x != 0:
                 b = b.split()
-                #print(b)
                 if len(b) == 12:
-                    print(b[11])
                     if(b[11]!= "1" and b[11]!= "." and b[11] != "," and int(b[6]) == minX):
                         x, y, w, h = int(b[6]), int(b[7]), int(b[8]), int(b[9])
                         global_x = x + math.floor(w / 2) + 46
                         x_val = float(b[11])
-                        #cv2.rectangle(img, (x, y), (w+x, h+y), 100, 1)
-                        #img = cv2.line(img, (x + math.floor(w / 2), 500), (x + math.floor(w / 2), 1000), 100, 1)
-                        #cv2.putText(img,b[11],(x,y),cv2.FONT_HERSHEY_COMPLEX,1,110, 2)
                         break
-        #cv2.imshow('res', img)
         return x_val, global_x
 
     @staticmethod
@@ -109,9 +102,5 @@ class Preprocessing:
                         markedChannel = int(text)
                         pixOfChan = y + math.ceil(h / 2) + 140
                         break
-                    #print(str(y) + '<-y;w-> ' + str(math.ceil(h / 2)))
-                    #img = cv2.line(img, (0, y + math.ceil(h / 2)), (40, y + math.ceil(h / 2)), 100, 1)
-                    #cv2.rectangle(img, (x, y), (w+x, h+y), 100, 1)
-                    #cv2.putText(img,b[11],(x,y),cv2.FONT_HERSHEY_COMPLEX,1,110, 2)
-        #cv2.imshow('res', img)
+
         return markedChannel, pixOfChan, chanY

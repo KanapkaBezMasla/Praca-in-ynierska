@@ -49,10 +49,24 @@ class ImageProcessing:
         # otwieranie pliku
         if os.path.isfile('pomiaryUszkodzen.xlsx') and os.access('pomiaryUszkodzen.xlsx', os.W_OK):
             wb = load_workbook('pomiaryUszkodzen.xlsx')
+            ws = wb.active
+            ws.title = "dane"
         else:
             wb = Workbook()
-        ws = wb.active
-        ws.title = "dane"
+            ws = wb.active
+            ws.title = "dane"
+            headingRow = []
+            headingRow.append("Kanał")
+            headingRow.append("Początek [m]")
+            headingRow.append("Kolor")
+            headingRow.append("Uszkodzenie [mm]")
+            headingRow.append("Początek [m]")
+            headingRow.append("Kolor")
+            headingRow.append("Uszkodzenie [mm]")
+            headingRow.append("Początek [m]")
+            headingRow.append("Kolor")
+            headingRow.append("Uszkodzenie [mm]")
+            ws.append(headingRow)
         binarizated = Image.open('binarizated.png')
         width, height = binarizated.size
         yellow = True           # opisuje, czy aktualnie mierzymy obszar niebieski, czy zolty
@@ -70,12 +84,17 @@ class ImageProcessing:
             # Jeżeli poprzedni wiersz kończył się w pasku, a nie w "szarej strefie"
             if countingOn:
                 if yellow == True:
-                    sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                    sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
-                    #ws.append()
+                    # Wpisanie pozycji poczatku uszkodzenia
+                    sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                    # Wpisanie koloru uszkodzenia
+                    sheetRow.append('zolty')
+                    sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                 else:
-                    sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                    sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                    # Wpisanie pozycji poczatku uszkodzenia
+                    sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                    # Wpisanie koloru uszkodzenia
+                    sheetRow.append('niebieski')
+                    sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                 damageLen = 0
                 countingOn = False
                 greenCounting = 0
@@ -103,7 +122,8 @@ class ImageProcessing:
                             showedWarning = True
                         if firstDamageOnChan:
                             firstDamageOnChan = False
-                            sheetRow.append('Chan' + str(chanN))
+                            # Numer kanalu
+                            sheetRow.append(str(chanN))
                         # Przed żółtym jest czerwony
                         if redCounting > 0:
                             if yellow:
@@ -116,19 +136,27 @@ class ImageProcessing:
                             damageLen += 1
                         # Przed żółtym jest niebieski
                         elif countingOn == True and yellow == False and greenCounting == 0:
-                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                            sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            # Wpisanie pozycji poczatku uszkodzenia
+                            sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                            # Wpisanie koloru uszkodzenia
+                            sheetRow.append('niebieski')
+                            # Wpisanie dlugosci uszkodzenia
+                            sheetRow.append(str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                             damageLen = 1
                             yellow = True
-                        # Przed żółtym jest szary
+                        # Przed zoltym jest szary
                         elif countingOn == False:
                             countingOn = True
                             damageLen = 1
                             yellow = True
                         # Przed żółtym jest zielony
                         else:
-                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                            sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            # Wpisanie pozycji poczatku uszkodzenia
+                            sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                            # Wpisanie koloru uszkodzenia
+                            sheetRow.append('niebieski')
+                            # Wpisanie dlugosci uszkodzenia
+                            sheetRow.append(str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                             damageLen = greenCounting + 1
                             greenCounting = 0
                             yellow = True
@@ -139,7 +167,7 @@ class ImageProcessing:
                             showedWarning = True
                         if firstDamageOnChan:
                             firstDamageOnChan = False
-                            sheetRow.append('Chan' + str(chanN))
+                            sheetRow.append(str(chanN))
                         if redCounting > 0:
                             if yellow == False:
                                 damageLen += redCounting + 1
@@ -151,8 +179,12 @@ class ImageProcessing:
                             damageLen += 1
                         # Przed niebieskim jest żółty
                         elif countingOn == True and yellow == True and greenCounting == 0:
-                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                            sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            # Wpisanie pozycji poczatku uszkodzenia
+                            sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                            # Wpisanie koloru uszkodzenia
+                            sheetRow.append('zolty')
+                            # Wpisanie dlugosci uszkodzenia
+                            sheetRow.append(str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                             damageLen = 1
                             yellow = False
                         # Przed niebieskim jest szary
@@ -163,8 +195,12 @@ class ImageProcessing:
                         # Przed niebieskim jest zielony
                         else:
                             yellow = False
-                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                            sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            # Wpisanie pozycji poczatku uszkodzenia
+                            sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                            # Wpisanie koloru uszkodzenia
+                            sheetRow.append('zolty')
+                            # Wpisanie dlugosci uszkodzenia
+                            sheetRow.append(str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                             damageLen = greenCounting + 1
                             greenCounting = 0
                     # kolor zielony
@@ -190,14 +226,22 @@ class ImageProcessing:
                         countingOn = False
                         # ...żółtego
                         if yellow == True:
-                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                            sheetRow.append('z ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            # Wpisanie pozycji poczatku uszkodzenia
+                            sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                            # Wpisanie koloru uszkodzenia
+                            sheetRow.append('zolty')
+                            # Wpisanie dlugosci uszkodzenia
+                            sheetRow.append(str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                             damageLen = 0
                             greenCounting = 0
                         # ...niebieskiego
                         else:
-                            sheetRow.append('pocz: ' + str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000) + 'm')
-                            sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
+                            # Wpisanie pozycji poczatku uszkodzenia
+                            sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
+                            # Wpisanie koloru uszkodzenia
+                            sheetRow.append('niebieski')
+                            # Wpisanie dlugosci uszkodzenia
+                            sheetRow.append(str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)))
                             damageLen = 0
                             greenCounting = 0
             pixLine += chanY

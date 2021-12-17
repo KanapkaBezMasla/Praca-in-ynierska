@@ -10,7 +10,7 @@ import math
 
 class ImageProcessing:
 
-    @staticmethod
+
     def findFirstChanOnImg(chanY: int, chanN: int, pixOfMark: int, yBeg: int, yDest: int, compYPix: int):
         ymin = 155 + (compYPix - 1) * 3
         ymin = max(ymin, yBeg)
@@ -35,7 +35,7 @@ class ImageProcessing:
 
     @staticmethod
     def measurement(mmPerPix: int, chanY: int, markedChan: int, pixLine: int, xBeg: int, yBeg: int, yDest: int, compYPix: int, x_scale_val: int, x_scale_pos: int):
-        #Funkcja służąca pomierzeniu uszkodzeń i zapisaniu ich do pliku
+        """Funkcja służąca pomierzeniu uszkodzeń i zapisaniu ich do pliku"""
 
         #ustalenie x dla początku screena względem osi
         x_scale_val *= 1000
@@ -55,17 +55,17 @@ class ImageProcessing:
         ws.title = "dane"
         binarizated = Image.open('binarizated.png')
         width, height = binarizated.size
-        yellow = True
-        countingOn = False
-        greenCounting = 0
+        yellow = True           # opisuje, czy aktualnie mierzymy obszar niebieski, czy zolty
+        countingOn = False      # opisuje, czy poprzedni piksel byl czarny (zbinaryzowany szary), czy nie, a wiec czy jest wlaczone zliczanie
+        greenCounting = 0       # opisuje, czy poprzedni piksel byl zielony
         damageLen = 0
         redCounting = 0
-        showedWarning = False
-        showedWarning2 = False
+        showedWarning = False   # czy wyswietlono ostrzezenie o ucieciu paska
+        showedWarning2 = False  # czy wyswietleno ostrzezenie o zaznaczeniu obszaru z nieprzestawionym wskaznikiem
         sheetRow = []
         emptyChan = False
         ymax = QDesktopWidget().screenGeometry().height()*2 - 90
-        ymax = min(yDest, ymax)
+        ymax = min(yDest, ymax) # ostatni wiersz pikseli na ktorym nalezy wykonac pomiary
         while pixLine + yBeg < ymax:
             # Jeżeli poprzedni wiersz kończył się w pasku, a nie w "szarej strefie"
             if countingOn:
@@ -178,8 +178,9 @@ class ImageProcessing:
                     if p[0] == 255:
                         if not showedWarning2:
                             WarningWindow(
-                                'Usun czerwony wskaznik z zaznaczonego pola! Możliwe błędne zapisanie danych!')
+                                'Usun czerwony wskaznik z zaznaczonego pola! Dane nie zostały zapisane!')
                             showedWarning2 = True
+                            break
                         if countingOn:
                             redCounting += 1
                     else:
@@ -199,10 +200,11 @@ class ImageProcessing:
                             sheetRow.append('n ' + str(round(float((damageLen + greenCounting) * mmPerPix) * 0.67)) + 'mm')
                             damageLen = 0
                             greenCounting = 0
-            pixLine += chanY #chanY*2-1
+            pixLine += chanY
             chanN += 1
         try:
-            wb.save('pomiaryUszkodzen.xlsx')
+            if not showedWarning2:
+                wb.save('pomiaryUszkodzen.xlsx')
         except Exception:
             WarningWindow('Proszę zamknąć Excela przed rozpoczęciem pomiarów! Pomiar nie zapisany!')
         return

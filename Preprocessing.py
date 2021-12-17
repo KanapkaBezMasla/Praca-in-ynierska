@@ -33,6 +33,8 @@ class Preprocessing:
 
     @staticmethod
     def findBeltX():
+        # Funkcja zczytuje pierwszą liczbę z przedziałki osi x (różną od 1 dla bezpieczeństwa działania aplikacji)
+        # i podaje jej pozycję
         im = PIL.ImageGrab.grab()
         width, height = im.size
         xpos = im.crop((46, 430, width-50, height-53))
@@ -65,6 +67,8 @@ class Preprocessing:
 
     @staticmethod
     def findBeltChan():
+        # Funkcja zczytuje pierwszą liczbę z przedzialki osi y
+        # i podaje jej pozycję oraz szerokosc kanalu
         im = PIL.ImageGrab.grab()
         width, height = im.size
         xpos = im.crop((4, 140, 50, height-90))

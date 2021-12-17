@@ -52,7 +52,7 @@ class MyApp(QWidget):
         self.begin = None
         self.destination = None
         if event.x() > self.screen.width()-11 and event.y() < 11:
-            print("idjfoweijfwejfowefj")
+            print("a")
 
 
     def mousePressEvent(self, event):
@@ -86,9 +86,11 @@ class MyApp(QWidget):
                 self.destination.setX(event.globalX())
                 self.update()
                 self.xdest = event.globalX()
-    # Przy puszczeniu myszki robiony jest zrzut ekranu, który jest przycinany do zaznaczonych wymiarów i zapisywany
+
 
     def mouseReleaseEvent(self, event):
+        # Przy puszczeniu myszki robiony jest zrzut ekranu, który jest przycinany do zaznaczonych wymiarów i zapisywany
+        # Następnie są pobierane niezbędne dane do pomiarów, obraz jest binaryzowany, by na koniec wykonać pomiary
         if (event.button() & Qt.LeftButton) and abs(self.xBeg-self.xdest) > 10 and abs(self.yBeg - self.ydest) > 10 and not self.noAction:
             im = PIL.ImageGrab.grab()
             if self.xBeg < event.globalX():

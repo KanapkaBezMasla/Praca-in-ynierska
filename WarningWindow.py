@@ -7,4 +7,4 @@ class WarningWindow:
         msg.setIcon(QMessageBox.Warning)
         msg.setText("Ostrzeżenie!")
         msg.setInformativeText(text)
-        x = msg.exec_()
+        x = msg.exec()

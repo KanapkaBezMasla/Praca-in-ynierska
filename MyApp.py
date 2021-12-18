@@ -1,10 +1,11 @@
+
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QPoint, QRect
 from PyQt5.QtGui import QPixmap, QPainter, QBrush
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QDesktopWidget
 import PIL.ImageGrab
 from ImageProcessing import ImageProcessing
-import _thread
+from Preprocessing import Preprocessing
 
 
 class MyApp(QWidget):
@@ -21,10 +22,19 @@ class MyApp(QWidget):
         self.setWindowOpacity(.20)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.imProc = ImageProcessing()
+        self.preProc = Preprocessing()
 
         self.begin, self.destination = QPoint(), QPoint()
         self.xBeg, self.yBeg = 0, 0
         self.xdest, self.ydest = 0, 0
+        self.mmPerPix = -1
+        # Pixels betweet chanells
+        self.chanY = -1
+        self.compYPix = -1
+        self.markedChannel = -1
+        self.pixOfMChan = -1
+        self.x_scale_pos = -1
+        self.x_scale_val = -1
         self.noAction = False
 
     def paintEvent(self, event):
@@ -98,4 +108,10 @@ class MyApp(QWidget):
             cropped = im.crop((self.xBeg, self.yBeg, self.xdest, self.ydest))
             cropped.save("markedArea.png")
 
-            _thread.start_new_thread(self.imProc.measurement, (self.xBeg, self.yBeg, self.ydest))
+            self.mmPerPix = self.preProc.readNumber(43, 96, 120, 120, self, 'x')
+            self.compYPix = self.preProc.readNumber(355, 96, 397, 120, self, 'compY Pixels')
+            self.x_scale_val, self.x_scale_pos = self.preProc.findBeltX()
+            self.markedChannel, self.pixOfMChan, self.chanY = self.preProc.findBeltChan()
+
+            self.imProc.binarization('markedArea.png', 'binarizated.png', 200)
+            self.imProc.measurement(self.mmPerPix, self.chanY, self.markedChannel, self.pixOfMChan, self.xBeg, self.yBeg, self.ydest, self.compYPix, self.x_scale_val, self.x_scale_pos)

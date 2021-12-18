@@ -1,14 +1,20 @@
+import threading
+
 from PIL import Image
-import cv2
-from PyQt5.QtWidgets import QDesktopWidget
+from PyQt5.QtWidgets import QDesktopWidget, QWidget
 from openpyxl import Workbook, load_workbook
 import os
 from WarningWindow import WarningWindow
+from Preprocessing import Preprocessing
 import math
 
 
 
 class ImageProcessing:
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.preProc = Preprocessing()
 
 
     def findFirstChanOnImg(chanY: int, chanN: int, pixOfMark: int, yBeg: int, yDest: int, compYPix: int):
@@ -27,22 +33,23 @@ class ImageProcessing:
         return chanN, pixOfMark
 
 
-    @staticmethod
-    def binarization(openFile: str, savingFile: str, threshold: int):
-        img = cv2.imread(openFile)
-        th, im_th = cv2.threshold(img, threshold, 255, cv2.THRESH_BINARY)
-        cv2.imwrite(savingFile, im_th)
+    def measurement(self, app: QWidget, xBeg: int, yBeg: int, yDest: int):
+        # Funkcja sluzaca pomierzeniu uszkodzeń i zapisaniu ich do pliku
 
-    @staticmethod
-    def measurement(mmPerPix: int, chanY: int, markedChan: int, pixLine: int, xBeg: int, yBeg: int, yDest: int, compYPix: int, x_scale_val: int, x_scale_pos: int):
-        """Funkcja służąca pomierzeniu uszkodzeń i zapisaniu ich do pliku"""
+        self.lock.acquire()
+        self.preProc.binarization('markedArea.png', 'binarizated.png', 200)
+        mmPerPix = self.preProc.readNumber(43, 96, 120, 120, app, 'x')
+        compYPix = self.preProc.readNumber(355, 96, 397, 120, app, 'compY Pixels')
+        x_scale_val, x_scale_pos = self.preProc.findBeltX()
+        markedChan, pixLine, chanY = self.preProc.findBeltChan()
 
-        #ustalenie x dla początku screena względem osi
+
+        #ustalenie x dla poczatku screena wzgledem osi
         x_scale_val *= 1000
         x_scale_val += round(((xBeg - x_scale_pos)*mmPerPix)*0.67)
         chanN, pixLine = ImageProcessing.findFirstChanOnImg(chanY, markedChan, pixLine, yBeg, yDest, compYPix)
         if pixLine < 0:
-            WarningWindow('Błąd odczytu osi Y! Pomiar nie wykonany!')
+            WarningWindow('Blad odczytu osi Y! Pomiar nie wykonany!')
             return
         pixLine = pixLine - yBeg
 
@@ -56,14 +63,14 @@ class ImageProcessing:
             ws = wb.active
             ws.title = "dane"
             headingRow = []
-            headingRow.append("Kanał")
-            headingRow.append("Początek [m]")
+            headingRow.append("Kanal")
+            headingRow.append("Poczatek [m]")
             headingRow.append("Kolor")
             headingRow.append("Uszkodzenie [mm]")
-            headingRow.append("Początek [m]")
+            headingRow.append("Poczatek [m]")
             headingRow.append("Kolor")
             headingRow.append("Uszkodzenie [mm]")
-            headingRow.append("Początek [m]")
+            headingRow.append("Poczatek [m]")
             headingRow.append("Kolor")
             headingRow.append("Uszkodzenie [mm]")
             ws.append(headingRow)
@@ -81,7 +88,7 @@ class ImageProcessing:
         ymax = QDesktopWidget().screenGeometry().height()*2 - 90
         ymax = min(yDest, ymax) # ostatni wiersz pikseli na ktorym nalezy wykonac pomiary
         while pixLine + yBeg < ymax:
-            # Jeżeli poprzedni wiersz kończył się w pasku, a nie w "szarej strefie"
+            # Jezeli poprzedni wiersz kończyl sie w pasku, a nie w "szarej strefie"
             if countingOn:
                 if yellow == True:
                     # Wpisanie pozycji poczatku uszkodzenia
@@ -100,13 +107,13 @@ class ImageProcessing:
                 greenCounting = 0
                 redCounting = 0
                 if not showedWarning:
-                    WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
+                    WarningWindow('Mozliwe uciecie paska! Mozliwie zle zapisane dane!')
                     showedWarning = True
             if sheetRow != []:
                 ws.append(sheetRow)
                 emptyChan = False
             else:
-                # Jeżeli poprzedni kanał nie był pusty to zrobi pusty wiersz w Excelu
+                # Jezeli poprzedni kanal nie byl pusty to zrobi pusty wiersz w Excelu
                 if emptyChan == False:
                     ws.append(sheetRow)
                 emptyChan = True
@@ -115,26 +122,26 @@ class ImageProcessing:
             for x in range(width):
                 p = binarizated.getpixel((x, pixLine))
                 if p[1] == 255:
-                    # Jeśli kolor żółty
+                    # Jeśli kolor zolty
                     if p[0] == 255 and p[2] == 0:
                         if x == 0 and not showedWarning:
-                            WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
+                            WarningWindow('Mozliwe uciecie paska! Mozliwie zle zapisane dane!')
                             showedWarning = True
                         if firstDamageOnChan:
                             firstDamageOnChan = False
                             # Numer kanalu
                             sheetRow.append(str(chanN))
-                        # Przed żółtym jest czerwony
+                        # Przed zoltym jest czerwony
                         if redCounting > 0:
                             if yellow:
                                 damageLen += redCounting + 1
                             else:
                                 yellow = True
                             redCounting = 0
-                        # Przed żółtym jest też piksel żółty
+                        # Przed zoltym jest tez piksel zolty
                         elif countingOn == True and yellow == True and greenCounting == 0:
                             damageLen += 1
-                        # Przed żółtym jest niebieski
+                        # Przed zoltym jest niebieski
                         elif countingOn == True and yellow == False and greenCounting == 0:
                             # Wpisanie pozycji poczatku uszkodzenia
                             sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
@@ -149,7 +156,7 @@ class ImageProcessing:
                             countingOn = True
                             damageLen = 1
                             yellow = True
-                        # Przed żółtym jest zielony
+                        # Przed zoltym jest zielony
                         else:
                             # Wpisanie pozycji poczatku uszkodzenia
                             sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
@@ -163,7 +170,7 @@ class ImageProcessing:
                     # Jeśli kolor niebieski
                     elif p[0] == 0 and p[2] == 255:
                         if x == 0 and not showedWarning:
-                            WarningWindow('Możliwe ucięcie paska! Możliwie źle zapisane dane!')
+                            WarningWindow('Mozliwe uciecie paska! Mozliwie zle zapisane dane!')
                             showedWarning = True
                         if firstDamageOnChan:
                             firstDamageOnChan = False
@@ -174,10 +181,10 @@ class ImageProcessing:
                             else:
                                 yellow = False
                             redCounting = 0
-                        # Przed niebieskim jest też piksel niebieski
+                        # Przed niebieskim jest tez piksel niebieski
                         elif countingOn == True and yellow == False and greenCounting == 0:
                             damageLen += 1
-                        # Przed niebieskim jest żółty
+                        # Przed niebieskim jest zolty
                         elif countingOn == True and yellow == True and greenCounting == 0:
                             # Wpisanie pozycji poczatku uszkodzenia
                             sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
@@ -208,13 +215,13 @@ class ImageProcessing:
                         greenCounting += 1
 
 
-                # kolor szary (lub jakiś błąd koloru czerwonego/niebieskiego)
+                # kolor szary (lub jakiś blad koloru czerwonego/niebieskiego)
                 else:
                     # kolor czerwony
                     if p[0] == 255:
                         if not showedWarning2:
                             WarningWindow(
-                                'Usun czerwony wskaznik z zaznaczonego pola! Dane nie zostały zapisane!')
+                                'Usun czerwony wskaznik z zaznaczonego pola! Dane nie zostaly zapisane!')
                             showedWarning2 = True
                             break
                         if countingOn:
@@ -224,7 +231,7 @@ class ImageProcessing:
                     # zakończenie paska...
                     if countingOn:
                         countingOn = False
-                        # ...żółtego
+                        # ...zoltego
                         if yellow == True:
                             # Wpisanie pozycji poczatku uszkodzenia
                             sheetRow.append(str(float(x_scale_val + round(float((x - damageLen - greenCounting) * mmPerPix) * 0.67))/1000))
@@ -249,8 +256,10 @@ class ImageProcessing:
         try:
             if not showedWarning2:
                 wb.save('pomiaryUszkodzen.xlsx')
+            self.lock.release()
         except Exception:
-            WarningWindow('Proszę zamknąć Excela przed rozpoczęciem pomiarów! Pomiar nie zapisany!')
+            self.lock.release()
+            WarningWindow('Prosze zamknac Excela przed rozpoczeciem pomiarow! Pomiar nie zapisany!')
         return
 
     @staticmethod
@@ -270,9 +279,8 @@ class ImageProcessing:
                 black_white.putpixel((x, y), min_val)
         black_white.save('chanels.png')
 
-    #Funkcja wyliczająca rząd pierwszego kanału na obrazku.
-    #Jeśli pierwszy rząd będzie poza obrazkiem, to zwróci -1
-    @staticmethod
+    #Funkcja wyliczajaca rzad pierwszego kanalu na obrazku.
+    #Jeśli pierwszy rzad bedzie poza obrazkiem, to zwroci -1
     def firstChan(yBeg: int, yDest: int, compYPix: int, chanY: int):
         chanN = math.ceil((154 - 3*compYPix - yBeg)/(-2*(chanY-1)))
         if chanN < yDest:
@@ -281,8 +289,7 @@ class ImageProcessing:
         else:
             return -1
 
-    # Funkcja wyliczająca rząd ostatniego kanału na obrazku.
-    @staticmethod
+    # Funkcja wyliczajaca rzad ostatniego kanalu na obrazku.
     def lastChan(yBeg: int, yDest: int, compYPix: int, chanY: int):
         chanN = math.floor((154 - 3 * compYPix - yDest) / (-2 * (chanY - 1)))
         chanN -= yBeg

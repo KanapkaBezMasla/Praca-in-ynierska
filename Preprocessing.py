@@ -5,13 +5,11 @@ import PIL
 import cv2
 import pytesseract as tess
 tess.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-from ImageProcessing import ImageProcessing
 from PyQt5.QtWidgets import (QWidget, QInputDialog)
 
 
 class Preprocessing:
-    @staticmethod
-    def readNumber(x1: int, y1: int, x2: int, y2: int, mainWin: QWidget, elementToRead: str):
+    def readNumber(my_object, x1: int, y1: int, x2: int, y2: int, mainWin: QWidget, elementToRead: str):
         im = PIL.ImageGrab.grab()
         mmPerPixIm = im.crop((x1, y1, x2, y2))
         mmPerPixIm.save("number.png")
@@ -31,8 +29,8 @@ class Preprocessing:
                     quit()
         return number
 
-    @staticmethod
-    def findBeltX():
+
+    def findBeltX(my_object):
         # Funkcja zczytuje pierwszą liczbę z przedziałki osi x (różną od 1 dla bezpieczeństwa działania aplikacji)
         # i podaje jej pozycję
         im = PIL.ImageGrab.grab()
@@ -40,8 +38,7 @@ class Preprocessing:
         xpos = im.crop((46, 430, width-50, height-53))
         xpos = xpos.convert('L')
         xpos.save("beltX.png")
-        imProc = ImageProcessing()
-        imProc.binarization('beltX.png', 'beltXbin.png', 80)
+        Preprocessing.binarization('beltX.png', 'beltXbin.png', 80)
 
         img = cv2.imread('beltXbin.png')
         cong = r'--oem 3 --psm 6 outputbase digits'
@@ -58,15 +55,15 @@ class Preprocessing:
             if x != 0:
                 b = b.split()
                 if len(b) == 12:
-                    if(b[11]!= "1" and b[11]!= "." and b[11] != "," and int(b[6]) == minX):
+                    if(b[11]!= "1" and b[11]!= "." and b[11] != "," and b[11]!= '.-' and int(b[6]) == minX):
                         x, y, w, h = int(b[6]), int(b[7]), int(b[8]), int(b[9])
                         global_x = x + math.floor(w / 2) + 46
                         x_val = float(b[11])
                         break
         return x_val, global_x
 
-    @staticmethod
-    def findBeltChan():
+
+    def findBeltChan(my_object):
         # Funkcja zczytuje pierwszą liczbę z przedzialki osi y
         # i podaje jej pozycję oraz szerokosc kanalu
         im = PIL.ImageGrab.grab()
@@ -74,8 +71,7 @@ class Preprocessing:
         xpos = im.crop((4, 140, 50, height-90))
         xpos = xpos.convert('L')
         xpos.save("beltY.png")
-        imProc = ImageProcessing()
-        imProc.binarization('beltY.png', 'beltYbin.png', 80)
+        Preprocessing.binarization('beltY.png', 'beltYbin.png', 80)
 
         img = cv2.imread('beltYbin.png')
         cong = r'--oem 3 --psm 6 outputbase digits'
@@ -108,3 +104,9 @@ class Preprocessing:
                         break
 
         return markedChannel, pixOfChan, chanY
+
+    @staticmethod
+    def binarization(openFile: str, savingFile: str, threshold: int):
+        img = cv2.imread(openFile)
+        th, im_th = cv2.threshold(img, threshold, 255, cv2.THRESH_BINARY)
+        cv2.imwrite(savingFile, im_th)
